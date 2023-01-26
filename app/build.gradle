@@ -25,6 +25,9 @@ dependencies {
 
     //Mongodb Java Lib
     implementation "org.mongodb:mongo-java-driver:3.11.3"
+
+    // https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients
+    implementation 'org.apache.kafka:kafka-clients:3.3.1'
 }
 
 application {

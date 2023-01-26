@@ -3,6 +3,8 @@
  */
 package mongoinsert;
 
+import mongoinsert.Info;
+
 import org.bson.Document;
 
 import com.mongodb.client.MongoClient;
@@ -16,9 +18,11 @@ public class App {
     }
 
     public static void main(String[] args) {
+        Info info = new Info();
+
         System.out.println(new App().getGreeting());
         // Replace the uri string with your MongoDB deployment's connection string
-        String uri = "mongodb://oklab:oklab_2023@110.13.86.60:60001/";
+        String uri = info.url;
 
         MongoClient mongoClient = MongoClients.create(uri);
 
