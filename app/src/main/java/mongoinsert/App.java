@@ -4,6 +4,7 @@
 package mongoinsert;
 
 import org.bson.Document;
+
 import java.util.Collections;
 import java.util.Properties;
 import java.time.Duration;
@@ -22,24 +23,37 @@ public class App {
     private static final String FIN_MESSAGE = "exit";
     
     public static void main(String[] args) {
-        String topic = info.topicname;
-        String uri = info.url;
+        //Consumer Config 추가, Key-Value 형태로 전달
+        //Bootstrap-server, Serializer, Group_id_config 등
         Properties properties = new Properties();
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, info.kafka1 + "," + info.kafka2 + "," + info.kafka3);
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, info.topicname);
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "test2");
 
+        //Consumer 객체 생성
         KafkaConsumer<String,String> consumer = new KafkaConsumer<String,String>(properties);
+
+        //Topic 구독
         consumer.subscribe(Collections.singletonList(info.topicname));
 
-        String message = null;
+        //Mongo 객체 생성
+        MongoClient mongoClient = MongoClients.create(info.url);
+        //Mongo Config 추가
+        MongoDatabase database = mongoClient.getDatabase(info.database);
+        MongoCollection<Document> collection = database.getCollection(info.collection);
 
+        //메세지를 받을 객체
+        String message = null;
+        //Consumer, Mongo 실행부
         try{
-            do{
+            do{//consumer로 받아온 message를 Records 객체에 저장, Records 객체는 Iterable 하다
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+                //Records 에서 Record를 하나씩 꺼내 message로 변환하고 출력
                 for(ConsumerRecord<String, String> record : records) {
                     message = record.value();
+                    Document doc = Document.parse(message);
+                    collection.insertOne(doc);
                     System.out.println(message);
                 }
             }while (!StringUtils.equals(message, FIN_MESSAGE));
@@ -48,16 +62,5 @@ public class App {
         } finally {
             consumer.close();
         }
-
-        MongoClient mongoClient = MongoClients.create(uri);
-
-        MongoDatabase database = mongoClient.getDatabase("fire-detection");
-        MongoCollection<Document> collection = database.getCollection("test");
-
-        Document doc = new Document("name", "MongoDB")
-                 .append("type", "database")
-                 .append("count", 1);
-
-        collection.insertOne(doc);
     }
 }
