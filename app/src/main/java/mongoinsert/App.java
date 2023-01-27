@@ -3,26 +3,45 @@
  */
 package mongoinsert;
 
-import mongoinsert.Info;
-
 import org.bson.Document;
-
+import java.util.Properties;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
+import org.apache.kafka.clients.producer.KafkaConsumer;
+
 public class App {
-    public String getGreeting() {
-        return "Hello World!";
-    }
-
+    private static final Info info = new Info();
     public static void main(String[] args) {
-        Info info = new Info();
-
-        System.out.println(new App().getGreeting());
-        // Replace the uri string with your MongoDB deployment's connection string
+        String topic = info.topicname;
         String uri = info.url;
+        Properties properties = new Properties();
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, info.kafka1 + "," + info.kafka2 + "," + info.kafka3);
+        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, info.topicname);
+
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
+        consumer.subscribe(Collections.singletonList(info.topicname));
+
+        String message = null;
+
+        try{
+            do{
+                ConsumerRecords<String> records = consumer.poll(Duration.ofMillis(100000));
+
+                for(ConsumerRecords<String> record : records) {
+                    message = record.value();
+                    System.out.println(message);
+                }
+            }while (!Stringutils.equals(message, FIN_MESSAGE));
+        } catch(Exception e){
+            // exception
+        } finally {
+            consumer.close();
+        }
 
         MongoClient mongoClient = MongoClients.create(uri);
 
