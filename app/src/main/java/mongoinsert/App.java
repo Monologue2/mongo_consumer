@@ -4,16 +4,23 @@
 package mongoinsert;
 
 import org.bson.Document;
+import java.util.Collections;
 import java.util.Properties;
+import java.time.Duration;
+
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
-import org.apache.kafka.clients.producer.KafkaConsumer;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.serialization.StringDeserializer;
 
 public class App {
     private static final Info info = new Info();
+    private static final String FIN_MESSAGE = "exit";
+    
     public static void main(String[] args) {
         String topic = info.topicname;
         String uri = info.url;
@@ -23,20 +30,19 @@ public class App {
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, info.topicname);
 
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
+        KafkaConsumer<String,String> consumer = new KafkaConsumer<String,String>(properties);
         consumer.subscribe(Collections.singletonList(info.topicname));
 
         String message = null;
 
         try{
             do{
-                ConsumerRecords<String> records = consumer.poll(Duration.ofMillis(100000));
-
-                for(ConsumerRecords<String> record : records) {
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+                for(ConsumerRecord<String, String> record : records) {
                     message = record.value();
                     System.out.println(message);
                 }
-            }while (!Stringutils.equals(message, FIN_MESSAGE));
+            }while (!StringUtils.equals(message, FIN_MESSAGE));
         } catch(Exception e){
             // exception
         } finally {
